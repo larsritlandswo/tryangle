@@ -3,11 +3,10 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import numpy as np
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics._scorer import _BaseScorer
 
 from tryangle.metrics.base import get_actual_expected
-
-from sklearn.metrics._scorer import _BaseScorer
-from sklearn.metrics import mean_squared_error
 
 
 class AVEScore(_BaseScorer):
@@ -75,7 +74,55 @@ class CDRScore(AVEScore):
             )
 
 
+class IBNRScore(AVEScore):
+    """Score projected incremental claims over future valuation periods."""
+
+    def __init__(self, n_periods=2):
+        if n_periods < 1:
+            raise ValueError("n_periods must be at least 1")
+        self.n_periods = n_periods
+        super().__init__()
+
+    def _score(self, method_caller, estimator, X, y_true, sample_weight=None):
+        valuation_date = X.triangle.latest_diagonal.valuation[0]
+        actual_valuation_date = y_true.triangle.latest_diagonal.valuation[0]
+        future_dates = y_true.triangle.valuation.drop_duplicates().sort_values()
+        future_dates = future_dates[
+            (future_dates > valuation_date) & (future_dates <= actual_valuation_date)
+        ][: self.n_periods]
+        if len(future_dates) != self.n_periods:
+            raise ValueError(
+                f"y_true must contain {self.n_periods} future valuation periods"
+            )
+
+        predicted = estimator.predict(X).full_triangle_.cum_to_incr()
+        actual = y_true.triangle.cum_to_incr()
+        actual_values, expected_values = [], []
+        for date in future_dates:
+            actual_period = actual[actual.valuation == date].latest_diagonal
+            predicted_period = predicted[predicted.valuation == date].latest_diagonal
+            origins = actual_period.origin.intersection(predicted_period.origin)
+            actual_values.extend(
+                actual_period[actual_period.origin.isin(origins)]
+                .to_frame()
+                .fillna(0)
+                .to_numpy()
+                .ravel()
+            )
+            expected_values.extend(
+                predicted_period[predicted_period.origin.isin(origins)]
+                .to_frame()
+                .fillna(0)
+                .to_numpy()
+                .ravel()
+            )
+        return self._sign * self._score_func(
+            actual_values, expected_values, **self._kwargs
+        )
+
+
 neg_ave_scorer = AVEScore()
 neg_weighted_ave_scorer = AVEScore(weighted=True)
 neg_cdr_scorer = CDRScore()
 neg_weighted_cdr_scorer = CDRScore(weighted=True)
+neg_ibnr_scorer = IBNRScore()

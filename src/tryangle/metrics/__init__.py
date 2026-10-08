@@ -12,4 +12,5 @@ from tryangle.metrics.score import (  # noqa (API Import)
     neg_cdr_scorer,
     neg_weighted_ave_scorer,
     neg_weighted_cdr_scorer,
+    neg_ibnr_scorer,
 )
