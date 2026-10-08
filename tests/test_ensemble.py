@@ -3,7 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import os
-from distutils import dir_util
+import shutil
 
 import numpy as np
 import pytest
@@ -46,7 +46,7 @@ def data_dir(tmpdir, request):
     test_dir, _ = os.path.splitext(filename)
 
     if os.path.isdir(test_dir):
-        dir_util.copy_tree(test_dir, str(tmpdir))
+        shutil.copytree(test_dir, str(tmpdir), dirs_exist_ok=True)
 
     return tmpdir
 

@@ -179,6 +179,7 @@ class AutoEnsemble(_BaseTriangleEnsemble):
 
         actual = X.latest_diagonal.to_frame().fillna(0).to_numpy()[:-1]
         actual = actual[np.newaxis, ...]
+        fit_params = {} if sample_weight is None else {"sample_weight": sample_weight}
         expected = np.array(
             [
                 get_expected(
@@ -186,7 +187,7 @@ class AutoEnsemble(_BaseTriangleEnsemble):
                         clone(clf),
                         X,
                         X,
-                        sample_weight=None,
+                        fit_params,
                         message_clsname=f"Preprocessing - {names[idx]}_expected",
                         message=self._log_message(names[idx], idx + 1, len(clfs)),
                     ),

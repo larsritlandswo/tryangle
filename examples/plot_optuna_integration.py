@@ -51,7 +51,10 @@ def optimize(n_trials):
 
 
 study = optuna.create_study(
-    study_name="opt_ibnr", storage="sqlite:///opt_ibnr.sqlite3", direction="maximize"
+    study_name="opt_ibnr",
+    storage="sqlite:///opt_ibnr.sqlite3",
+    direction="maximize",
+    load_if_exists=True,
 )
 r = Parallel(n_jobs=-1)([delayed(optimize)(1) for _ in range(100)])
 
